@@ -77,8 +77,7 @@
                 <label class="form-label" for="username">Email address</label>
             </div>
             <div class="form-outline">
-                <input type="password" id="password" class="form-control" placeholder=" " required
-                    value="Pass1234" />
+                <input type="password" id="password" class="form-control" placeholder=" " required value="Pass1234" />
                 <label class="form-label" for="password">Password</label>
             </div>
 
@@ -111,7 +110,11 @@
             <div id="tab3" class="tab-pane" id="scan-content">
                 <div>
                     <h4>Scan QR Code</h4>
-                    <div id="scanner-qr-code" style="width: 300px; height: 300px;"></div>
+                    <select class="form-control" id="地點群組">
+                        <option hidden selected>--- 請選擇 ---</option>
+                        <option value="__DEBUG__">__DEBUG__</option>
+                    </select>
+                    <div id="scanner-qr-code" style="width: 300px; height: 300px; display: none"></div>
                     <p id="scanner-result"></p>
                     <p id="scanner-output"></p>
                 </div>
@@ -143,6 +146,16 @@
 
             $('#toggle-btn').on('click', toggleForm);
 
+            // Event listener for change in 地點群組
+            $('#地點群組').on('change', function (e) {
+                const selectedValue = $(this).val();
+                if (selectedValue && selectedValue !== '--- 請選擇 ---') {
+                    $('#scanner-qr-code').show(); // Show the QR Code scanner
+                } else {
+                    $('#scanner-qr-code').hide(); // Hide the QR Code scanner if no valid selection
+                }
+                $(e.target).hide();
+            });
             function toggleForm() {
                 isLogin = !isLogin;
                 $('#form-title').text(isLogin ? 'Login' : 'Register');
@@ -225,6 +238,32 @@
                     const gps = await getGPSInfo();
                     window.data.scanner = { decodedText, gps: gps };
                     document.querySelector("#scanner-output").innerText = stringify(window.data.scanner);
+
+                    // Assuming the server expects JSON format
+                    const response = await fetch('http://localhost:3000/action/QRCode/CreateRecord', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}` // If your server uses Bearer token auth
+                        },
+                        body: JSON.stringify({
+                            地點群組: $('#地點群組').val(),
+                            序號: decodedText,
+                            經度: gps.latitude,
+                            緯度: gps.longitude,
+                            偏差: gps.accuracy
+                        })
+                    });
+
+                    // Handle the response from the server
+                    if (response.ok) {
+                        const result = await response.json();
+                        // Assuming the result contains a success message or some relevant data
+                        console.log('Data sent successfully:', result);
+                    } else {
+                        const errorMessage = await response.text();
+                        console.error('Error sending data:', errorMessage);
+                    }
 
                     // Set the flag to stop further processing
                     isScanning = false;
