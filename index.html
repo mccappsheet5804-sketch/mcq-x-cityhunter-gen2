@@ -238,6 +238,9 @@
                     if (!isScanning) return;
 
                     isScanning = false;
+                    // Hide the camera temporarily
+                    document.querySelector("#scanner-qr-code").style.display = "none"; // Hide camera display
+
 
                     const gps = await getGPSInfo();
                     window.data.scanner = { decodedText, gps: gps };
@@ -267,18 +270,15 @@
                         console.error('Error sending data:', errorMessage);
                     }
 
-                    // Clear the scanner and restart
-                    qrCodeScanner.clear().then(() => {
-                        // Using setTimeout to re-enable scanning after a short delay
-                        setTimeout(() => {
-                            isScanning = true; // Reset the scanning flag
-                            alert($("#scan-content").html());
-                            initializeQRScanner(); // Call this function to restart scanning
-                        }, 1000); // 1 second delay for feedback
-                    }).catch((error) => {
-                        console.error('Failed to clear QR Code scanner:', error);
-                        isScanning = true; // Reset scanning in case of error
-                    });
+                    alert($("#scan-content").html());
+
+                    // Using setTimeout to re-enable scanning after a short delay
+                    setTimeout(() => {
+                        isScanning = true; // Reset the scanning flag
+                        document.querySelector("#scanner-qr-code").style.display = "block"; // Show camera display again
+                        document.querySelector("#scanner-output").innerText = "";
+                        initializeQRScanner(); // Call this function to restart scanning
+                    }, 4000); // 1 second delay for feedback
                 };
 
                 if (!qrCodeScanner) {
