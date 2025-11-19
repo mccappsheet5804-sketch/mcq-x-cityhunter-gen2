@@ -235,12 +235,14 @@
                 const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
                     if (!isScanning) return;
 
+                    // Set the flag to stop further processing
+                    isScanning = false;
+
                     const gps = await getGPSInfo();
                     window.data.scanner = { decodedText, gps: gps };
-                    document.querySelector("#scanner-output").innerText = stringify(window.data.scanner);
 
                     // Assuming the server expects JSON format
-                    const response = await fetch('http://localhost:3000/action/QRCode/CreateRecord', {
+                    const response = await fetch('https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/QRCode/CreateRecord', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -265,10 +267,14 @@
                         console.error('Error sending data:', errorMessage);
                     }
 
-                    // Set the flag to stop further processing
-                    isScanning = false;
-
-                    $("#html5-qrcode-button-camera-stop").click();
+                    qrCodeScanner.clear().then(() => {
+                        setTimeout(() => {
+                            isScanning = true; // Reset the flag after a delay to allow new scans
+                        }, 3000); // 3 seconds delay before allowing new scans
+                        document.querySelector("#scanner-output").innerText = stringify(window.data.scanner);
+                    }).catch((error) => {
+                        console.error('Failed to clear QR Code scanner:', error);
+                    });
                 };
 
                 // Create an instance of Html5QrcodeScanner
@@ -280,7 +286,6 @@
                         rememberLastUsedCamera: true
                     }
                 );
-                console.log(qrCodeScanner)
 
                 // Initialize the QR scanner and render it
                 qrCodeScanner
