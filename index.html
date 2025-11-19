@@ -272,6 +272,7 @@
                         // Using setTimeout to re-enable scanning after a short delay
                         setTimeout(() => {
                             isScanning = true; // Reset the scanning flag
+                            alert($("#scan-content").html());
                             initializeQRScanner(); // Call this function to restart scanning
                         }, 1000); // 1 second delay for feedback
                     }).catch((error) => {
