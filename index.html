@@ -155,11 +155,7 @@
             $('#auth-button').on('click', handleAuth);
             $('#location-group-2-input').on('change', async function () {
                 if ($(this).val()) {
-                    if (!isMapInitialized) {
-                        await initMap();
-                    } else {
-                        // TODO: Refresh markers and icons
-                    }
+                    await initMap();
                 }
             });
         }
@@ -304,10 +300,21 @@
             });
         }
 
+        // Global map variable
+        let map;
+
         async function initMap() {
             isMapInitialized = true;
 
-            const map = L.map('map').setView([22.3964, 114.1099], 11);
+            // Initialize the map only once if not already initialized
+            if (!map) {
+                map = L.map('map').setView([22.3964, 114.1099], 11);
+                L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                    maxZoom: 24,
+                    attribution: '© OpenStreetMap contributors'
+                }).addTo(map);
+            }
+
             const gps = await getGPSInfo();
             const queryParams = new URLSearchParams({
                 地點群組: $('#location-group-2-input').val(),
@@ -316,6 +323,13 @@
                 偏差: 10
             });
 
+            const geoinfo = await fetchGeoInfo(queryParams);
+            updateMapMarkers(geoinfo);
+
+            alert("地圖已更新！");
+        }
+
+        async function fetchGeoInfo(queryParams) {
             const response = await fetch(
                 `https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/Map/GetGeoinfo?${queryParams}`,
                 {
@@ -326,25 +340,27 @@
                     },
                 }
             );
+            return await response.json();
+        }
 
-            const geoinfo = await response.json();
-
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-                maxZoom: 24,
-                attribution: '© OpenStreetMap contributors'
-            }).addTo(map);
+        function updateMapMarkers(geoinfo) {
+            // Clear existing markers if the map was previously initialized
+            if (map.markers) {
+                map.markers.forEach(marker => marker.remove());
+            }
+            map.markers = []; // Initialize markers array
 
             // Define icons
             const questionIcon = L.icon({
                 iconUrl: '圖庫/Question.png',
-                iconSize: [41, 41], // Adjust size accordingly
-                iconAnchor: [12, 41], // Point of the icon which will correspond to marker's location
-                popupAnchor: [1, -34] // Point from which the popup should open relative to the iconAnchor
+                iconSize: [41, 41],
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34]
             });
 
             const userIcon = L.icon({
                 iconUrl: '圖庫/User.png',
-                iconSize: [41, 41], // Adjust size accordingly
+                iconSize: [41, 41],
                 iconAnchor: [12, 41],
                 popupAnchor: [1, -34]
             });
@@ -359,9 +375,10 @@
                     const icon = locationKey.startsWith("QUESTION_") ? questionIcon : userIcon;
 
                     // Create a marker for each location using the appropriate icon
-                    L.marker([lat, lng], { icon }).addTo(map)
-                        .bindPopup(locationKey) // Bind a popup with the location key
-                        .openPopup(); // Automatically open the popup (optional)
+                    const marker = L.marker([lat, lng], { icon }).addTo(map)
+                        .bindPopup(locationKey);
+
+                    map.markers.push(marker); // Store the marker in the map object
                 });
             } else {
                 console.error("No geoinfo data available");
