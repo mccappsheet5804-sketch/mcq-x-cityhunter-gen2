@@ -110,7 +110,7 @@
             <div id="tab3" class="tab-pane" id="scan-content">
                 <div>
                     <h4>Scan QR Code</h4>
-                    <label id="label-地點群組"></label>
+                    <label id="label-地點群組" class="my-3"></label>
                     <select class="form-control" id="地點群組">
                         <option value="" hidden selected>--- 請選擇 ---</option>
                         <option value="__DEBUG__">__DEBUG__</option>
@@ -153,6 +153,8 @@
             $('#地點群組').on('change', function (e) {
                 const selectedValue = $(this).val();
                 document.querySelector('#label-地點群組').innerText = `地點群組: 「${document.querySelector('#地點群組').value}」`;
+                document.querySelector('#label-地點群組').style.display = 'block';
+                document.querySelector('#地點群組').style.display = 'none';
                 if (selectedValue && selectedValue !== '') {
                     $('#scanner-qr-code').show(); // Show the QR Code scanner
                 } else {
