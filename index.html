@@ -197,8 +197,9 @@
             async function authenticate(email, password) {
                 try {
                     const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    console.log(userCredential);
                     const user = userCredential.user;
+                    const accessToken = await user.getIdToken();
+                    sessionStorage.setItem('accessToken', accessToken);
                     $('body').addClass('d-flex justify-content-start mt-4');
                     $('.tab-content').addClass('active');
                     $('#auth-message').text('Login successful! Welcome back, ' + user.email);
