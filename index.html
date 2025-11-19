@@ -111,7 +111,7 @@
                 <div>
                     <h4>Scan QR Code</h4>
                     <select class="form-control" id="地點群組">
-                        <option hidden selected>--- 請選擇 ---</option>
+                        <option value="" hidden selected>--- 請選擇 ---</option>
                         <option value="__DEBUG__">__DEBUG__</option>
                     </select>
                     <div id="scanner-qr-code" style="width: 300px; height: 300px; display: none"></div>
@@ -149,7 +149,7 @@
             // Event listener for change in 地點群組
             $('#地點群組').on('change', function (e) {
                 const selectedValue = $(this).val();
-                if (selectedValue && selectedValue !== '--- 請選擇 ---') {
+                if (selectedValue && selectedValue !== '') {
                     $('#scanner-qr-code').show(); // Show the QR Code scanner
                 } else {
                     $('#scanner-qr-code').hide(); // Hide the QR Code scanner if no valid selection
