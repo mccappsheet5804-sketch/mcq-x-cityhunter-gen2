@@ -17,7 +17,8 @@
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
-
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
     <style>
         body {
             background: linear-gradient(to bottom, #d9e8f5, #f0f4ff);
@@ -52,16 +53,9 @@
             color: #007BFF;
         }
 
-        .tab-content {
-            display: none;
-        }
-
-        .tab-pane {
-            padding: 20px;
-        }
-
-        .tab-content.active {
-            display: block;
+        #map {
+            width: 100%;
+            height: 400px;
         }
     </style>
 </head>
@@ -72,32 +66,32 @@
         <h2 class="text-center" id="form-title">Login</h2>
         <form id="auth-form" class="mt-4">
             <div class="form-outline">
-                <input type="email" id="username" class="form-control" placeholder=" " required
+                <input type="email" id="email-input" class="form-control" placeholder=" " required
                     value="admin@gmail.com" />
-                <label class="form-label" for="username">Email address</label>
+                <label class="form-label" for="email-input">Email address</label>
             </div>
             <div class="form-outline">
-                <input type="password" id="password" class="form-control" placeholder=" " required value="Pass1234" />
-                <label class="form-label" for="password">Password</label>
-            </div>
-
-            <div class="form-outline" id="confirmed-password-container" style="display: none;">
-                <input type="password" id="password-confirm" class="form-control" placeholder=" " required
+                <input type="password" id="password-input" class="form-control" placeholder=" " required
                     value="Pass1234" />
-                <label class="form-label" for="password-confirm">Confirmed Password</label>
+                <label class="form-label" for="password-input">Password</label>
             </div>
-            <button type="button" id="auth-btn" class="btn btn-primary btn-block mb-4">Login</button>
+            <div class="form-outline" id="confirm-password-container" style="display: none;">
+                <input type="password" id="confirm-password-input" class="form-control" placeholder=" " required
+                    value="Pass1234" />
+                <label class="form-label" for="confirm-password-input">Confirmed Password</label>
+            </div>
+            <button type="button" id="auth-button" class="btn btn-primary btn-block mb-4">Login</button>
             <div class="text-center mb-3">
-                <p><span id="membership">Not a member?</span> <a href="#!" id="toggle-btn">Register</a></p>
+                <p><span id="membership-status">Not a member?</span> <a href="#!" id="toggle-button">Register</a></p>
             </div>
             <p class="text-danger text-center" id="auth-message"></p>
         </form>
-        <div id="dummy-form" class="d-flex justify-content-center align-items-center" style="visibility: hidden">
+        <div id="loading-indicator" class="d-flex justify-content-center align-items-center" style="visibility: hidden">
             <div>Loading...</div>
         </div>
     </div>
 
-    <div id="tabs" class="container mt-4" style="display: none;">
+    <div id="tabs-container" class="container mt-4" style="display: none;">
         <ul class="nav nav-tabs">
             <li class="nav-item"><a class="nav-link active" data-bs-toggle="tab" href="#tab1">角色</a></li>
             <li class="nav-item"><a class="nav-link" data-bs-toggle="tab" href="#tab2">問題</a></li>
@@ -107,22 +101,29 @@
         <div class="tab-content mt-2">
             <div id="tab1" class="tab-pane active">Content for 角色 tab.</div>
             <div id="tab2" class="tab-pane">Content for 問題 tab.</div>
-            <div id="tab3" class="tab-pane" id="scan-content">
-                <div>
-                    <h4>Scan QR Code</h4>
-                    <div id="div-地點群組" class="my-2"></div>
-                    <select class="form-control" id="地點群組">
-                        <option value="" hidden selected>--- 請選擇 ---</option>
-                        <option value="__DEBUG__">__DEBUG__</option>
-                        <option value="城門谷公園">城門谷公園</option>
-                        <option value="九龍公園">九龍公園</option>
-                    </select>
-                    <div id="scanner-qr-code" style="width: 300px; height: 300px; display: none"></div>
-                    <p id="scanner-result"></p>
-                    <p id="scanner-output"></p>
-                </div>
+            <div id="tab3" class="tab-pane">
+                <h4>Scan QR Code</h4>
+                <div id="location-group-display" class="my-2">地點群組：</div>
+                <select class="form-control" id="location-group-input">
+                    <option value="" hidden selected>--- 請選擇 ---</option>
+                    <option value="__DEBUG__">__DEBUG__</option>
+                    <option value="城門谷公園">城門谷公園</option>
+                    <option value="九龍公園">九龍公園</option>
+                </select>
+                <div id="scanner-qr-code" class="mt-2"></div>
+                <p id="scanner-output"></p>
             </div>
-            <div id="tab4" class="tab-pane">Content for 地圖 tab.</div>
+            <div id="tab4" class="tab-pane">
+                <h4>地圖</h4>
+                <div id="location-group-2-display" class="my-2">地點群組：</div>
+                <select class="form-control" id="location-group-2-input">
+                    <option value="" hidden selected>--- 請選擇 ---</option>
+                    <option value="__DEBUG__">__DEBUG__</option>
+                    <option value="城門谷公園">城門谷公園</option>
+                    <option value="九龍公園">九龍公園</option>
+                </select>
+                <div id="map"></div>
+            </div>
         </div>
     </div>
 
@@ -142,212 +143,230 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        $(document).ready(function () {
+        var isMapInitialized = false;
+        $(document).ready(init);
 
+        async function init() {
             let isLogin = true;
             let isScanning = true;
 
-            $('#toggle-btn').on('click', toggleForm);
-
-            // Event listener for change in 地點群組
-            $('#地點群組').on('change', function (e) {
-                const selectedValue = $(this).val();
-                document.querySelector('#div-地點群組').innerText = `地點群組: 「${document.querySelector('#地點群組').value}」`;
-                document.querySelector('#div-地點群組').style.display = 'block';
-                document.querySelector('#地點群組').style.display = 'none';
-                if (selectedValue && selectedValue !== '') {
-                    $('#scanner-qr-code').show(); // Show the QR Code scanner
-                } else {
-                    $('#scanner-qr-code').hide(); // Hide the QR Code scanner if no valid selection
-                }
-                $(e.target).hide();
-            });
-            function toggleForm() {
-                isLogin = !isLogin;
-                $('#form-title').text(isLogin ? 'Login' : 'Register');
-                $('#auth-btn').text(isLogin ? 'Sign in' : 'Register');
-                $('#toggle-btn').text(isLogin ? 'Register' : 'Login');
-                $('#membership').text(isLogin ? 'Not a member?' : 'Already a member?');
-                $('#auth-message').text('');
-
-                if (isLogin) {
-                    document.querySelector('#confirmed-password-container').style.display = 'none';
-                } else {
-                    document.querySelector('#confirmed-password-container').style.display = 'block';
-                }
-
-                $('#confirm-password-container').toggle(isLogin);
-            }
-
-            $('#auth-btn').on('click', async function () {
-                $("#dummy-form").css('visibility', 'visible');
-                $("#auth-form").css('visibility', 'hidden');
-
-                const username = $('#username').val();
-                const password = $('#password').val();
-                const passwordConfirm = $('#password-confirm').val();
-
-                if (isLogin) {
-                    await authenticate(username, password);
-                } else {
-                    if (password === passwordConfirm) {
-                        await register(username, password);
+            $('#toggle-button').on('click', toggleForm);
+            $('#location-group-input').on('change', handleLocationChange);
+            $('#auth-button').on('click', handleAuth);
+            $('#location-group-2-input').on('change', async function () {
+                if ($(this).val()) {
+                    if (!isMapInitialized) {
+                        await initMap();
                     } else {
-                        $('#auth-message').text('Passwords do not match.');
+                        // TODO: Refresh markers and icons
                     }
                 }
-
-                $("#dummy-form").css('visibility', 'hidden');
-                $("#auth-form").css('visibility', 'visible');
             });
+        }
 
-            async function register(email, password) {
-                try {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-                    $('#auth-message').text('Registration successful! Welcome, ' + userCredential.user.email);
-                    setTimeout(() => {
-                        toggleForm();
-                    }, 200);
-                } catch (error) {
-                    $('#auth-message').text(error.message);
-                }
+        function handleLocationChange() {
+            const selectedValue = $(this).val();
+            $('#location-group-display').text(`地點群組: 「${selectedValue}」`).show();
+            $('#location-group-input').hide();
+            $('#scanner-qr-code').toggle(!!selectedValue);
+        }
+
+        function toggleForm() {
+            const isLogin = $('#form-title').text() === 'Login';
+            $('#form-title').text(isLogin ? 'Register' : 'Login');
+            $('#auth-button').text(isLogin ? 'Register' : 'Sign in');
+            $('#toggle-button').text(isLogin ? 'Login' : 'Register');
+            $('#membership-status').text(isLogin ? 'Already a member?' : 'Not a member?');
+            $('#confirm-password-container').toggle(!isLogin);
+            $('#auth-message').text('');
+        }
+
+        async function handleAuth() {
+            $("#loading-indicator").css('visibility', 'visible');
+            $("#auth-form").css('visibility', 'hidden');
+            const username = $('#email-input').val();
+            const password = $('#password-input').val();
+            const passwordConfirm = $('#confirm-password-input').val();
+
+            const isLogin = $('#form-title').text() === 'Login';
+            if (isLogin) {
+                await authenticate(username, password);
+            } else if (password === passwordConfirm) {
+                await register(username, password);
+            } else {
+                $('#auth-message').text('Passwords do not match.');
             }
 
-            async function authenticate(email, password) {
-                try {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, password);
-                    const user = userCredential.user;
-                    const accessToken = await user.getIdToken();
-                    sessionStorage.setItem('accessToken', accessToken);
-                    $('body').addClass('d-flex justify-content-start mt-4');
-                    $('.tab-content').addClass('active');
-                    $('#auth-message').text('Login successful! Welcome back, ' + user.email);
-                    $('#auth-card').hide(); // Hide the login form
-                    $('#tabs').show(); // Show the tabs
-                    window.data = {
-                        character: {},
-                        question: {},
-                        scanner: {},
-                        map: {},
-                    }
+            $("#loading-indicator").css('visibility', 'hidden');
+            $("#auth-form").css('visibility', 'visible');
+        }
 
-                    await initializeQRScanner();
-                } catch (error) {
-                    $('#auth-message').text(error.message);
-                }
+        async function register(email, password) {
+            try {
+                const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+                $('#auth-message').text('Registration successful! Welcome, ' + userCredential.user.email);
+                setTimeout(toggleForm, 200);
+            } catch (error) {
+                $('#auth-message').text(error.message);
             }
+        }
 
-            let qrCodeScanner; // Declare qrCodeScanner in a broader scope
+        async function authenticate(email, password) {
+            try {
+                const userCredential = await signInWithEmailAndPassword(auth, email, password);
+                const user = userCredential.user;
+                const accessToken = await user.getIdToken();
+                sessionStorage.setItem('accessToken', accessToken);
 
-            async function initializeQRScanner() {
-                const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
-                    if (!isScanning) return;
+                $('#auth-card').hide();
+                $('#tabs-container').show();
+                $('#auth-message').text('Login successful! Welcome back, ' + user.email);
+                await initializeQRScanner();
+            } catch (error) {
+                $('#auth-message').text(error.message);
+            }
+        }
 
-                    isScanning = false;
+        let qrCodeScanner;
 
-                    document.querySelector("#scanner-qr-code").style.display = "none"; // Hide camera display
-                    document.querySelector('#地點群組').style.display = 'none';
-                    document.querySelector('#div-地點群組').style.display = 'block';
+        async function initializeQRScanner() {
+            const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+                if (!isScanning) return;
+                isScanning = false;
 
-                    const gps = await getGPSInfo();
-                    window.data.scanner = { decodedText, gps: gps };
+                $('#scanner-qr-code').hide();
+                const gps = await getGPSInfo();
 
-                    document.querySelector("#scanner-output").innerText = `掃描結果: ${decodedText}\n經度: ${gps.longitude}\n緯度: ${gps.latitude}\n偏差: ${gps.accuracy} 公尺\n時間: ${new Date(gps.timestamp).toLocaleString()}`;
-                    document.querySelector('#div-地點群組').innerText = `地點群組: 「${document.querySelector('#地點群組').value}」`;
-
-                    const response = await fetch('https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/QRCode/CreateRecord', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
-                        },
-                        body: JSON.stringify({
-                            地點群組: document.querySelector('#地點群組').value,
-                            序號: decodedText,
-                            經度: gps.latitude,
-                            緯度: gps.longitude,
-                            偏差: gps.accuracy
-                        })
-                    });
-
-                    if (response.ok) {
-                        const result = await response.json();
-                        console.log('Data sent successfully:', result);
-                    } else {
-                        const errorMessage = await response.text();
-                        console.error('Error sending data:', errorMessage);
-                    }
-
-                    // Using setTimeout to re-enable scanning after a short delay
-                    setTimeout(() => {
-                        isScanning = true; // Reset the scanning flag
-                        document.querySelector("#scanner-qr-code").style.display = "block"; // Show camera display again
-                        document.querySelector("#scanner-output").innerText = "";
-                        document.querySelector('#div-地點群組').value = '地點群組：';
-                        document.querySelector('#地點群組').style.display = 'block';
-                        document.querySelector('#div-地點群組').style.display = 'block';
-                        initializeQRScanner(); // Call this function to restart scanning
-                    }, 4000); // 1 second delay for feedback
+                const data = {
+                    decodedText,
+                    gps,
+                    locationGroup: $('#location-group-input').val()
                 };
 
-                if (!qrCodeScanner) {
-                    // Create an instance of Html5QrcodeScanner only if it doesn't exist
-                    qrCodeScanner = new Html5QrcodeScanner(
-                        "scanner-qr-code",
-                        {
-                            fps: 10,
-                            qrbox: 250,
-                            rememberLastUsedCamera: true
-                        }
-                    );
+                $('#scanner-output').text(`掃描結果: ${decodedText}`);
+                await sendDataToServer(data);
 
-                    qrCodeScanner.render(
-                        qrCodeSuccessCallback,
+                setTimeout(() => {
+                    isScanning = true;
+                    $('#scanner-qr-code').show();
+                    $('#scanner-output').text("");
+                    initializeQRScanner();
+                }, 4000);
+            };
+
+            if (!qrCodeScanner) {
+                qrCodeScanner = new Html5QrcodeScanner("scanner-qr-code", { fps: 10, qrbox: 250, rememberLastUsedCamera: true });
+                qrCodeScanner.render(qrCodeSuccessCallback, (error) => console.error("Error during QR code scanning:", error));
+            }
+        }
+
+        async function sendDataToServer(data) {
+            const url = 'https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/QRCode/CreateRecord';
+            await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
+                },
+                body: JSON.stringify({
+                    地點群組: locationGroup,
+                    序號: data.decodedText,
+                    經度: data.gps.latitude,
+                    緯度: data.gps.longitude,
+                    偏差: data.gps.accuracy,
+                })
+            });
+        }
+
+        function getGPSInfo() {
+            return new Promise((resolve, reject) => {
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => resolve({
+                            latitude: position.coords.latitude,
+                            longitude: position.coords.longitude,
+                            accuracy: position.coords.accuracy,
+                            timestamp: position.timestamp
+                        }),
                         (error) => {
-                            console.error("Error during QR code scanning:", error);
+                            const errors = {
+                                1: "User denied the request for Geolocation.",
+                                2: "Location information is unavailable.",
+                                3: "The request to get user location timed out.",
+                                0: "An unknown error occurred."
+                            };
+                            reject(errors[error.code] || "Geolocation is not supported by this browser.");
                         }
                     );
+                } else {
+                    reject("Geolocation is not supported by this browser.");
                 }
-            }
+            });
+        }
 
-            function getGPSInfo() {
-                return new Promise((resolve, reject) => {
-                    if (navigator.geolocation) {
-                        navigator.geolocation.getCurrentPosition(
-                            (position) => {
-                                // Resolve with the position object if successful
-                                resolve({
-                                    latitude: position.coords.latitude,
-                                    longitude: position.coords.longitude,
-                                    accuracy: position.coords.accuracy,
-                                    timestamp: position.timestamp
-                                });
-                            },
-                            (error) => {
-                                // Reject with error message if there's an error
-                                switch (error.code) {
-                                    case error.PERMISSION_DENIED:
-                                        reject("User denied the request for Geolocation.");
-                                        break;
-                                    case error.POSITION_UNAVAILABLE:
-                                        reject("Location information is unavailable.");
-                                        break;
-                                    case error.TIMEOUT:
-                                        reject("The request to get user location timed out.");
-                                        break;
-                                    case error.UNKNOWN_ERROR:
-                                        reject("An unknown error occurred.");
-                                        break;
-                                }
-                            }
-                        );
-                    } else {
-                        // Reject if geolocation is not supported
-                        reject("Geolocation is not supported by this browser.");
-                    }
+        async function initMap() {
+            isMapInitialized = true;
+
+            const map = L.map('map').setView([22.3964, 114.1099], 11);
+            const gps = await getGPSInfo();
+            const queryParams = new URLSearchParams({
+                地點群組: $('#location-group-2-input').val(),
+                用戶經度: gps.latitude,
+                用戶緯度: gps.longitude,
+                偏差: 10
+            });
+
+            const response = await fetch(
+                `https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/Map/GetGeoinfo?${queryParams}`,
+                {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${sessionStorage.getItem('accessToken')}`
+                    },
+                }
+            );
+
+            const geoinfo = await response.json();
+
+            L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+                maxZoom: 24,
+                attribution: '© OpenStreetMap contributors'
+            }).addTo(map);
+
+            // Define icons
+            const questionIcon = L.icon({
+                iconUrl: '圖庫/Question.png',
+                iconSize: [41, 41], // Adjust size accordingly
+                iconAnchor: [12, 41], // Point of the icon which will correspond to marker's location
+                popupAnchor: [1, -34] // Point from which the popup should open relative to the iconAnchor
+            });
+
+            const userIcon = L.icon({
+                iconUrl: '圖庫/User.png',
+                iconSize: [41, 41], // Adjust size accordingly
+                iconAnchor: [12, 41],
+                popupAnchor: [1, -34]
+            });
+
+            // Check if the geoinfo data is available
+            if (geoinfo.success && geoinfo.data.geoinfo.length > 0) {
+                geoinfo.data.geoinfo.forEach(location => {
+                    const locationKey = Object.keys(location)[0];
+                    const { lat, lng } = location[locationKey];
+
+                    // Select the icon based on the key
+                    const icon = locationKey.startsWith("QUESTION_") ? questionIcon : userIcon;
+
+                    // Create a marker for each location using the appropriate icon
+                    L.marker([lat, lng], { icon }).addTo(map)
+                        .bindPopup(locationKey) // Bind a popup with the location key
+                        .openPopup(); // Automatically open the popup (optional)
                 });
+            } else {
+                console.error("No geoinfo data available");
             }
-        });
+        }
     </script>
 </body>
 
