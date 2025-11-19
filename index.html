@@ -110,6 +110,7 @@
             <div id="tab3" class="tab-pane" id="scan-content">
                 <div>
                     <h4>Scan QR Code</h4>
+                    <label id="label-地點群組"></label>
                     <select class="form-control" id="地點群組">
                         <option value="" hidden selected>--- 請選擇 ---</option>
                         <option value="__DEBUG__">__DEBUG__</option>
@@ -149,6 +150,7 @@
             // Event listener for change in 地點群組
             $('#地點群組').on('change', function (e) {
                 const selectedValue = $(this).val();
+                document.querySelector('#label-地點群組').innerText = `地點群組: 「${document.querySelector('#地點群組').value}」`;
                 if (selectedValue && selectedValue !== '') {
                     $('#scanner-qr-code').show(); // Show the QR Code scanner
                 } else {
@@ -238,14 +240,16 @@
                     if (!isScanning) return;
 
                     isScanning = false;
-                    // Hide the camera temporarily
-                    document.querySelector("#scanner-qr-code").style.display = "none"; // Hide camera display
 
+                    document.querySelector("#scanner-qr-code").style.display = "none"; // Hide camera display
+                    document.querySelector('#地點群組').style.display = 'none';
+                    document.querySelector('#label-地點群組').style.display = 'block';
 
                     const gps = await getGPSInfo();
                     window.data.scanner = { decodedText, gps: gps };
 
                     document.querySelector("#scanner-output").innerText = `掃描結果: ${decodedText}\n經度: ${gps.longitude}\n緯度: ${gps.latitude}\n偏差: ${gps.accuracy} 公尺\n時間: ${new Date(gps.timestamp).toLocaleString()}`;
+                    document.querySelector('#label-地點群組').innerText = `地點群組: 「${document.querySelector('#地點群組').value}」`;
 
                     const response = await fetch('https://mcq-x-cityhunter-gen2-bfdadb7ba57d.herokuapp.com/action/QRCode/CreateRecord', {
                         method: 'POST',
@@ -270,13 +274,13 @@
                         console.error('Error sending data:', errorMessage);
                     }
 
-                    alert($("#scan-content").html());
-
                     // Using setTimeout to re-enable scanning after a short delay
                     setTimeout(() => {
                         isScanning = true; // Reset the scanning flag
                         document.querySelector("#scanner-qr-code").style.display = "block"; // Show camera display again
                         document.querySelector("#scanner-output").innerText = "";
+                        document.querySelector('#地點群組').style.display = 'block';
+                        document.querySelector('#label-地點群組').style.display = 'none';
                         initializeQRScanner(); // Call this function to restart scanning
                     }, 4000); // 1 second delay for feedback
                 };
