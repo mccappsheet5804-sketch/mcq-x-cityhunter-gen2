@@ -210,6 +210,10 @@
 
         async function initializeQRScanner() {
             const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+                alert(JSON.stringify([
+                    decodedResult,
+                    isScanning
+                ]));
                 if (!isScanning) return;
                 isScanning = false;
 
@@ -235,6 +239,7 @@
                     });
             };
 
+            alert(qrCodeScanner)
             if (!qrCodeScanner) {
                 qrCodeScanner = new Html5QrcodeScanner(
                     "scanner-qr-code",
