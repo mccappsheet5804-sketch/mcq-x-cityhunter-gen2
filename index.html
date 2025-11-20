@@ -110,7 +110,7 @@
 
         async function init() {
             let isLogin = true;
-            let isScanning = true;
+            let isScanning = false;
 
             $('#toggle-button').on('click', toggleForm);
             $('#location-group-input').on('change', handleLocationChange);
@@ -125,11 +125,15 @@
 
             $('[href="#tab3"]').on(
                 "click",
-                () => {
+                async () => {
                     document.querySelector('#location-group-display').innerText = '地點群組: ';
                     document.querySelector('#location-group-input').style.display = 'block';
                     document.querySelector('#location-group-input').value = '';
-                    isScanning = true;
+                    isScanning = false;
+
+                    if (!isScanning) {
+                        await initializeQRScanner(); // Only initialize if not already scanning
+                    }
                 }
             );
 
@@ -200,22 +204,19 @@
                 $('#auth-card').hide();
                 $('#tabs-container').show();
                 $('#auth-message').text('Login successful! Welcome back, ' + user.email);
-                await initializeQRScanner();
             } catch (error) {
                 $('#auth-message').text(error.message);
             }
         }
 
-        let qrCodeScanner;
+        let qrCodeScanner = null;
 
         async function initializeQRScanner() {
             const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
-                alert(JSON.stringify([
-                    decodedResult,
-                    isScanning
-                ]));
-                if (!isScanning) return;
-                isScanning = false;
+                alert(`掃描到的序號: ${decodedText}`);
+                alert("準備傳送資料到伺服器...");
+                if (isScanning) return;
+                isScanning = true;
 
                 $('#scanner-output').text(`掃描結果: ${decodedText}`);
 
@@ -231,10 +232,10 @@
                     .then(async () => {
                         $('#scanner-output').text("準備重新掃描...");
                         setTimeout(() => {
-                            isScanning = true;
+                            isScanning = false;
                             $('#scanner-qr-code').show();
                             $('#scanner-output').text("");
-                            initializeQRScanner();
+                            // initializeQRScanner();
                         }, 4000);
                     });
             };
@@ -243,12 +244,14 @@
                 qrCodeScanner = new Html5QrcodeScanner(
                     "scanner-qr-code",
                     {
+                        facingMode: "environment",
                         fps: 10,
                         qrbox: 250,
-                        rememberLastUsedCamera: true
-                    }
+                        rememberLastUsedCamera: true,
+                    },
+                    false
                 );
-                alert("初始化掃描器");
+
                 qrCodeScanner.render(
                     qrCodeSuccessCallback,
                     (error) => console.error("Error during QR code scanning:", error)
