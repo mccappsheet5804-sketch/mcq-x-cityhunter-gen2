@@ -228,13 +228,12 @@
                 const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
                     if (isScanning) return;
                     isScanning = true;
-                    alert("掃描成功！");
 
-                    $('#scanner-qr-code').hide();
                     $('#scanner-output').text(`掃描結果: ${decodedText}`);
 
                     qrCodeScanner.clear()
                         .then(async () => {
+                            $('#scanner-qr-code').hide();
                             $('#scanner-output').text("正在傳送資料到伺服器...");
 
                             const gps = await getGPSInfo();
