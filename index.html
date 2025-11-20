@@ -19,45 +19,7 @@
     <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <style>
-        body {
-            background: linear-gradient(to bottom, #d9e8f5, #f0f4ff);
-            font-family: Arial, sans-serif;
-            height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 20px;
-            flex-direction: column;
-        }
-
-        .auth-card {
-            background: white;
-            border-radius: 15px;
-            padding: 30px;
-            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .form-outline {
-            position: relative;
-            margin-bottom: 1.5rem;
-        }
-
-        input:focus+.form-label,
-        input:not(:placeholder-shown)+.form-label {
-            top: -10px;
-            left: 10px;
-            font-size: 12px;
-            color: #007BFF;
-        }
-
-        #map {
-            width: 100%;
-            height: 400px;
-        }
-    </style>
+    <link rel="stylesheet" href="./index.css" />
 </head>
 
 <body>
@@ -116,7 +78,7 @@
             <div id="tab4" class="tab-pane">
                 <h4>地圖</h4>
                 <div id="location-group-2-display" class="my-2">地點群組：</div>
-                <select class="form-control" id="location-group-2-input">
+                <select class="form-control mb-2" id="location-group-2-input">
                     <option value="" hidden selected>--- 請選擇 ---</option>
                     <option value="__DEBUG__">__DEBUG__</option>
                     <option value="城門谷公園">城門谷公園</option>
@@ -154,10 +116,31 @@
             $('#location-group-input').on('change', handleLocationChange);
             $('#auth-button').on('click', handleAuth);
             $('#location-group-2-input').on('change', async function () {
+                document.querySelector('#location-group-2-display').innerText = `地點群組: 「${$(this).val()}」`;
+                document.querySelector('#location-group-2-input').style.display = 'none';
                 if ($(this).val()) {
                     await initMap();
                 }
             });
+
+            $('[href="#tab3"]').on(
+                "click",
+                () => {
+                    document.querySelector('#location-group-display').innerText = '地點群組: ';
+                    document.querySelector('#location-group-input').style.display = 'block';
+                    document.querySelector('#location-group-input').value = '';
+                    isScanning = false;
+                }
+            );
+
+            $('[href="#tab4"]').on(
+                "click",
+                async () => {
+                    document.querySelector('#location-group-2-display').innerText = '地點群組: ';
+                    document.querySelector('#location-group-2-input').style.display = 'block';
+                    document.querySelector('#location-group-2-input').value = '';
+                }
+            );
         }
 
         function handleLocationChange() {
@@ -230,24 +213,26 @@
                 if (!isScanning) return;
                 isScanning = false;
 
-                $('#scanner-qr-code').hide();
+                $('#scanner-output').text(`掃描結果: ${decodedText}`);
+                
                 const gps = await getGPSInfo();
-
                 const data = {
                     decodedText,
                     gps,
                     locationGroup: $('#location-group-input').val()
                 };
-
-                $('#scanner-output').text(`掃描結果: ${decodedText}`);
                 await sendDataToServer(data);
 
-                setTimeout(() => {
-                    isScanning = true;
-                    $('#scanner-qr-code').show();
-                    $('#scanner-output').text("");
-                    initializeQRScanner();
-                }, 4000);
+                qrCodeScanner.clear()
+                    .then(async () => {
+                        $('#scanner-output').text("準備重新掃描...");
+                        setTimeout(() => {
+                            isScanning = true;
+                            $('#scanner-qr-code').show();
+                            $('#scanner-output').text("");
+                            initializeQRScanner();
+                        }, 4000);
+                    });
             };
 
             if (!qrCodeScanner) {
@@ -386,5 +371,45 @@
         }
     </script>
 </body>
+
+<style>
+    body {
+        background: linear-gradient(to bottom, #d9e8f5, #f0f4ff);
+        font-family: Arial, sans-serif;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+        flex-direction: column;
+    }
+
+    .auth-card {
+        background: white;
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .form-outline {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    input:focus+.form-label,
+    input:not(:placeholder-shown)+.form-label {
+        top: -10px;
+        left: 10px;
+        font-size: 12px;
+        color: #007BFF;
+    }
+
+    #map {
+        width: 100%;
+        height: 400px;
+    }
+</style>
 
 </html>
