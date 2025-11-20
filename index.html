@@ -239,7 +239,6 @@
                     });
             };
 
-            alert(qrCodeScanner)
             if (!qrCodeScanner) {
                 qrCodeScanner = new Html5QrcodeScanner(
                     "scanner-qr-code",
@@ -249,6 +248,7 @@
                         rememberLastUsedCamera: true
                     }
                 );
+                alert("初始化掃描器");
                 qrCodeScanner.render(
                     qrCodeSuccessCallback,
                     (error) => console.error("Error during QR code scanning:", error)
