@@ -129,7 +129,7 @@
                     document.querySelector('#location-group-display').innerText = '地點群組: ';
                     document.querySelector('#location-group-input').style.display = 'block';
                     document.querySelector('#location-group-input').value = '';
-                    isScanning = false;
+                    isScanning = true;
                 }
             );
 
@@ -214,7 +214,7 @@
                 isScanning = false;
 
                 $('#scanner-output').text(`掃描結果: ${decodedText}`);
-                
+
                 const gps = await getGPSInfo();
                 const data = {
                     decodedText,
@@ -236,8 +236,18 @@
             };
 
             if (!qrCodeScanner) {
-                qrCodeScanner = new Html5QrcodeScanner("scanner-qr-code", { fps: 10, qrbox: 250, rememberLastUsedCamera: true });
-                qrCodeScanner.render(qrCodeSuccessCallback, (error) => console.error("Error during QR code scanning:", error));
+                qrCodeScanner = new Html5QrcodeScanner(
+                    "scanner-qr-code",
+                    {
+                        fps: 10,
+                        qrbox: 250,
+                        rememberLastUsedCamera: true
+                    }
+                );
+                qrCodeScanner.render(
+                    qrCodeSuccessCallback,
+                    (error) => console.error("Error during QR code scanning:", error)
+                );
             }
         }
 
