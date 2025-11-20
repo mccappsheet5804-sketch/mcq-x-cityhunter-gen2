@@ -129,7 +129,6 @@
                     document.querySelector('#location-group-display').innerText = '地點群組: ';
                     document.querySelector('#location-group-input').style.display = 'block';
                     document.querySelector('#location-group-input').value = '';
-                    isScanning = false;
 
                     if (!isScanning) {
                         await initializeQRScanner(); // Only initialize if not already scanning
@@ -212,34 +211,7 @@
         let qrCodeScanner = null;
 
         async function initializeQRScanner() {
-            const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
-                if (isScanning) return;
-                isScanning = true;
-
-                $('#scanner-output').text(`掃描結果: ${decodedText}`);
-
-                qrCodeScanner.clear()
-                    .then(async () => {
-                        $('#scanner-qr-code').hide();
-                        $('#scanner-output').text("正在傳送資料到伺服器...");
-
-                        const gps = await getGPSInfo();
-                        const data = {
-                            decodedText,
-                            gps,
-                            locationGroup: $('#location-group-input').val()
-                        };
-                        await sendDataToServer(data);
-
-                        $('#scanner-output').text("準備重新掃描...");
-                        setTimeout(() => {
-                            isScanning = false;
-                            $('#scanner-qr-code').show();
-                            $('#scanner-output').text("");
-                            // initializeQRScanner();
-                        }, 4000);
-                    });
-            };
+            isScanning = false;
 
             if (!qrCodeScanner) {
                 qrCodeScanner = new Html5QrcodeScanner(
@@ -252,6 +224,36 @@
                     },
                     false
                 );
+
+                const qrCodeSuccessCallback = async (decodedText, decodedResult) => {
+                    if (isScanning) return;
+                    isScanning = true;
+
+                    $('#scanner-qr-code').hide();
+                    $('#scanner-output').text(`掃描結果: ${decodedText}`);
+
+                    // qrCodeScanner.clear()
+                    //     .then(async () => {
+                    //         $('#scanner-qr-code').hide();
+                    //         $('#scanner-output').text("正在傳送資料到伺服器...");
+
+                    //         const gps = await getGPSInfo();
+                    //         const data = {
+                    //             decodedText,
+                    //             gps,
+                    //             locationGroup: $('#location-group-input').val()
+                    //         };
+                    //         await sendDataToServer(data);
+
+                    //         $('#scanner-output').text("準備重新掃描...");
+                    //         setTimeout(() => {
+                    //             isScanning = false;
+                    //             $('#scanner-qr-code').show();
+                    //             $('#scanner-output').text("");
+                    //             // initializeQRScanner();
+                    //         }, 4000);
+                    //     });
+                };
 
                 qrCodeScanner.render(
                     qrCodeSuccessCallback,
